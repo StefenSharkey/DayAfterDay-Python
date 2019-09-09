@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QApplication, QPushButton, QFrame, QGridLayout, QLab
 from PyQt5.QtGui import QImage, QImageReader, QPixmap
 
 __author__ = "Stefen Sharkey"
-__version__ = "0.01a"
+__version__ = "0.01b"
 __project__ = "Day / Day"
 
 debug = True
