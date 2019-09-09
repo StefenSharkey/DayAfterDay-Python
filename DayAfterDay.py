@@ -105,6 +105,7 @@ class DayAfterDay(QWidget):
 
         picture_file_name += str(increment_counter) + picture_file_extension
         self.image.save(picture_file_name, "PNG")
+        self.history_layout.insertWidget(0, HistoryWidget(picture_file_name))
 
     def addVLine(self):
         line = QFrame()
@@ -115,7 +116,7 @@ class DayAfterDay(QWidget):
 
     def addHistory(self):
         history = QWidget()
-        history_layout = QVBoxLayout()
+        self.history_layout = QVBoxLayout()
 
         if debug:
             history.setAutoFillBackground(True)
@@ -126,18 +127,19 @@ class DayAfterDay(QWidget):
         if not os.path.exists(picture_files_directory):
             os.makedirs(picture_files_directory)
 
-        picture_files = [file for file in listdir(picture_files_directory) if isfile(join(picture_files_directory, file))]
+        self.picture_files = [file for file in listdir(picture_files_directory) if isfile(join(picture_files_directory, file))]
+        self.picture_files.sort()
 
-        for file in picture_files:
+        for file in self.picture_files:
             if QImageReader.supportedImageFormats().count(file[-3:].lower()) > 0:
-                history_layout.addWidget(HistoryWidget(picture_files_directory + file))
+                self.history_layout.insertWidget(0, HistoryWidget(picture_files_directory + file))
 
         # Fill empty space at bottom.
         emptyWidget = QWidget()
         emptyWidget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        history_layout.addWidget(emptyWidget)
+        self.history_layout.addWidget(emptyWidget)
 
-        history.setLayout(history_layout)
+        history.setLayout(self.history_layout)
 
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
