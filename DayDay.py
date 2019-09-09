@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
-import logging
 import os
 from os import listdir
 from os.path import isfile, join
 from pathlib import Path
 import sys
 
-from PyQt5.QtCore import Qt, qDebug
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QPushButton, QFrame, QGridLayout, QLabel, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 from PyQt5.QtGui import QImageReader, QPixmap
 
@@ -22,8 +21,6 @@ class DayDay(QWidget):
     def __init__(self):
         super().__init__()
         self.title = __project__ + " " + __version__
-        # self.width = 640
-        # self.height = 480
 
         self.initUI()
 
@@ -35,13 +32,12 @@ class DayDay(QWidget):
         # Add the widgets to the main layout.
         grid.addWidget(self.addCamera(), 0, 0)
         grid.addWidget(self.addShutter(), 1, 0)
-        grid.addWidget(self.addHistory(), 0, 1)
+        grid.addWidget(self.addVLine(), 0, 1, 2, 1)
+        grid.addWidget(self.addHistory(), 0, 2, 2, 1)
 
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(1, 0)
-        # grid.setColumnStretch(2, 1)
 
-        # self.resize(self.width, self.height)
         self.setWindowTitle(self.title)
         self.show()
 
@@ -82,10 +78,16 @@ class DayDay(QWidget):
         # shutter.setLayout(shutterLayout)
         return shutter
 
+    def addVLine(self):
+        line = QFrame()
+        line.setFrameShape(QFrame.VLine)
+        line.setFrameShadow(QFrame.Sunken)
+
+        return line
+
     def addHistory(self):
         history = QWidget()
-        historyLayout = QVBoxLayout()
-
+        history_layout = QVBoxLayout()
 
         if debug:
             history.setAutoFillBackground(True)
@@ -102,25 +104,25 @@ class DayDay(QWidget):
 
         for file in picture_files:
             if QImageReader.supportedImageFormats().count(file[-3:].lower()) > 0:
-                historyLayout.addWidget(HistoryWidget(picture_files_directory + file))
-                historyLayout.addWidget(HistoryWidget(picture_files_directory + file))
-                historyLayout.addWidget(HistoryWidget(picture_files_directory + file))
-                historyLayout.addWidget(HistoryWidget(picture_files_directory + file))
-                historyLayout.addWidget(HistoryWidget(picture_files_directory + file))
+                history_layout.addWidget(HistoryWidget(picture_files_directory + file))
 
+        # Fill empty space at bottom.
         emptyWidget = QWidget()
         emptyWidget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        historyLayout.addWidget(emptyWidget)
+        history_layout.addWidget(emptyWidget)
 
-        history.setLayout(historyLayout)
+        history.setLayout(history_layout)
 
-        # scrollArea = QScrollArea(history)
-        # scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        # scrollArea.setWidgetResizable(True)
-        #
-        # scrollArea.setLayout(historyLayout)
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(history)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        scroll_area.setFrameShape(QFrame.NoFrame)
 
-        return history
+        # Fixed width set to 237 to account for 37 pixels being used by QScrollArea.
+        scroll_area.setFixedWidth(237)
+
+        return scroll_area
 
 
 class HistoryWidget(QWidget):
