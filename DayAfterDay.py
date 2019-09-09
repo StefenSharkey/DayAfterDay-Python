@@ -16,7 +16,8 @@ __project__ = "Day / Day"
 
 debug = True
 
-class DayDay(QWidget):
+
+class DayAfterDay(QWidget):
 
     def __init__(self):
         super().__init__()
@@ -154,5 +155,5 @@ class HistoryWidget(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    ex = DayDay()
+    ex = DayAfterDay()
     sys.exit(app.exec_())
