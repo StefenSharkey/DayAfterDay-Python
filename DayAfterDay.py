@@ -4,6 +4,7 @@ import os
 from os import listdir
 from os.path import isfile, join
 from pathlib import Path
+import datetime
 import sys
 
 import cv2
@@ -16,7 +17,9 @@ __author__ = "Stefen Sharkey"
 __version__ = "0.01a"
 __project__ = "Day / Day"
 
-debug = False
+debug = True
+
+picture_files_directory = str(Path.home()) + "\\Documents\\DayAfterDay\\"
 
 
 class DayAfterDay(QWidget):
@@ -24,6 +27,9 @@ class DayAfterDay(QWidget):
     def __init__(self):
         super().__init__()
         self.title = __project__ + " " + __version__
+
+        self.is_camera_showing = False
+        self.is_saving = False
 
         self.initUI()
 
@@ -69,25 +75,36 @@ class DayAfterDay(QWidget):
 
     @pyqtSlot(QImage)
     def setImage(self, image):
-        self.cameraLabel.setPixmap(QPixmap.fromImage(image).scaled(self.cameraLabel.width(), self.cameraLabel.height(), Qt.KeepAspectRatio))
+        self.image = QPixmap.fromImage(image)
+        self.cameraLabel.setPixmap(self.image.scaled(self.cameraLabel.width(), self.cameraLabel.height(), Qt.KeepAspectRatio))
+
+        # We don't want the user pressing the shutter if no image has shown.
+        self.shutter.setEnabled(True)
 
     def addShutter(self):
-        # Add the shutter button.
-        shutter = QPushButton("Take Picture")
-        # shutter = QWidget()
-        # shutterLayout = QGridLayout()
-        #
-        # if debug:
-        #     shutter.setAutoFillBackground(True)
-        #     palette = shutter.palette()
-        #     palette.setColor(shutter.backgroundRole(), Qt.blue)
-        #     shutter.setPalette(palette)
-        #
-        # shutterButton = QPushButton("Take Picture")
-        #
-        # shutterLayout.addWidget(shutterButton)
-        # shutter.setLayout(shutterLayout)
-        return shutter
+        self.shutter = QPushButton("Take Picture")
+        self.shutter.clicked.connect(self.on_shutter_pressed)
+        self.shutter.setEnabled(False)
+        return self.shutter
+
+    @pyqtSlot()
+    def on_shutter_pressed(self):
+        # File name follows ISO 8601 standards with an increment counter and are stored and read as follows:
+        # DayAfterDay-YYYY-MM-DD-HHMMSS-X
+        datetime_formatted = str(datetime.datetime.now())[:-7].replace(" ", "-").replace(":", "")
+        increment_counter = 1
+        picture_file_extension = ".png"
+        picture_file_name = picture_files_directory + "DayAfterDay-" + datetime_formatted + "-"
+
+        # Increment the counter in case file already exists to avoid overwriting files.
+        while True:
+            if not Path(picture_file_name + str(increment_counter) + picture_file_extension).exists():
+                break
+
+            increment_counter += 1
+
+        picture_file_name += str(increment_counter) + picture_file_extension
+        self.image.save(picture_file_name, "PNG")
 
     def addVLine(self):
         line = QFrame()
@@ -105,8 +122,6 @@ class DayAfterDay(QWidget):
             palette = history.palette()
             palette.setColor(history.backgroundRole(), Qt.green)
             history.setPalette(palette)
-
-        picture_files_directory = str(Path.home()) + "\\Documents\\DayAfterDay\\"
 
         if not os.path.exists(picture_files_directory):
             os.makedirs(picture_files_directory)
