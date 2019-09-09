@@ -6,15 +6,17 @@ from os.path import isfile, join
 from pathlib import Path
 import sys
 
-from PyQt5.QtCore import Qt
+import cv2
+
+from PyQt5.QtCore import Qt, QThread, pyqtSlot, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QPushButton, QFrame, QGridLayout, QLabel, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
-from PyQt5.QtGui import QImageReader, QPixmap
+from PyQt5.QtGui import QImage, QImageReader, QPixmap
 
 __author__ = "Stefen Sharkey"
 __version__ = "0.01a"
 __project__ = "Day / Day"
 
-debug = True
+debug = False
 
 
 class DayAfterDay(QWidget):
@@ -53,13 +55,21 @@ class DayAfterDay(QWidget):
             palette.setColor(camera.backgroundRole(), Qt.red)
             camera.setPalette(palette)
 
-        cameraLabel = QLabel("This is where the camera widget would go...IF I HAD ONE.")
-        cameraLabel.resize(640, 480)
-        cameraLabel.setWordWrap(False)
+        self.cameraLabel = QLabel(self)
+        self.cameraLabel.setAlignment(Qt.AlignCenter)
 
-        cameraLayout.addWidget(cameraLabel)
+        thread = Thread(self)
+        thread.changePixmap.connect(self.setImage)
+        thread.start()
+
+        cameraLayout.addWidget(self.cameraLabel)
         camera.setLayout(cameraLayout)
+
         return camera
+
+    @pyqtSlot(QImage)
+    def setImage(self, image):
+        self.cameraLabel.setPixmap(QPixmap.fromImage(image).scaled(self.cameraLabel.width(), self.cameraLabel.height(), Qt.KeepAspectRatio))
 
     def addShutter(self):
         # Add the shutter button.
@@ -124,6 +134,24 @@ class DayAfterDay(QWidget):
         scroll_area.setFixedWidth(237)
 
         return scroll_area
+
+
+class Thread(QThread):
+
+    changePixmap = pyqtSignal(QImage)
+
+    def run(self):
+        cap = cv2.VideoCapture(0)
+
+        while True:
+            ret, frame = cap.read()
+
+            if ret:
+                rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                h, w, ch = rgbImage.shape
+                bytesPerLine = ch * w
+                convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
+                self.changePixmap.emit(convertToQtFormat)
 
 
 class HistoryWidget(QWidget):
