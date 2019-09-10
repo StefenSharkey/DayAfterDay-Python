@@ -17,7 +17,7 @@ __author__ = "Stefen Sharkey"
 __version__ = "0.01b"
 __project__ = "Day / Day"
 
-debug = True
+debug = False
 
 picture_files_directory = str(Path.home()) + "\\Documents\\DayAfterDay\\"
 
@@ -41,12 +41,14 @@ class DayAfterDay(QWidget):
 
         # Add the widgets to the main layout.
         self.main_layout.addWidget(self.addCamera(), 0, 0)
-        self.main_layout.addWidget(self.addShutter(), 1, 0)
-        self.main_layout.addWidget(self.addVLine(), 0, 1, 2, 1)
-        self.main_layout.addWidget(self.addHistory(), 0, 2, 2, 1)
+        self.main_layout.addWidget(self.addOpacitySlider(), 1, 0)
+        self.main_layout.addWidget(self.addShutter(), 2, 0)
+        self.main_layout.addWidget(self.addVLine(), 0, 1, 3, 1)
+        self.main_layout.addWidget(self.addHistory(), 0, 2, 3, 1)
 
         self.main_layout.setColumnStretch(0, 1)
         self.main_layout.setColumnStretch(1, 0)
+        self.main_layout.setRowStretch(0, 1)
 
         self.setWindowTitle(self.title)
         self.show()
@@ -96,7 +98,7 @@ class DayAfterDay(QWidget):
             painter.end()
 
             painter.begin(self)
-            painter.setOpacity(.25)
+            painter.setOpacity(self.slider.sliderPosition() / 100)
             shadow_picture = QPixmap(picture_files_directory + self.picture_files[0])
             shadow_picture = shadow_picture.scaled(self.cameraLabel.width(), self.cameraLabel.height(), Qt.KeepAspectRatio)
             painter.drawPixmap(x_loc, y_loc, shadow_picture)
@@ -104,6 +106,26 @@ class DayAfterDay(QWidget):
 
     def eventFilter(self, obj, ev):
         return ev.type() == QEvent.Paint
+
+    def addOpacitySlider(self):
+        parent = QWidget()
+        layout = QVBoxLayout()
+
+        label = QLabel("Previous Picture Opacity")
+        label.setAlignment(Qt.AlignCenter)
+
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setTickPosition(QSlider.TicksBothSides)
+        self.slider.setTickInterval(10)
+        self.slider.setSliderPosition(50)
+        self.slider.setFixedWidth(250)
+
+        layout.addWidget(label)
+        layout.addWidget(self.slider, alignment=Qt.AlignCenter)
+
+        parent.setLayout(layout)
+
+        return parent
 
     def addShutter(self):
         self.shutter = QPushButton("Take Picture")
