@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import configparser
 import os
 from os import listdir
 from os.path import isfile, join
@@ -19,7 +20,8 @@ __project__ = "Day / Day"
 
 debug = False
 
-picture_files_directory = str(Path.home()) + "\\Documents\\DayAfterDay\\"
+files_directory = str(Path.home()) + "\\Documents\\DayAfterDay\\"
+config_file_name = files_directory + "DayAfterDay.ini"
 
 class DayAfterDay(QWidget):
 
@@ -39,6 +41,8 @@ class DayAfterDay(QWidget):
 
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
+        self.initConfig()
+
         # Add the widgets to the main layout.
         self.main_layout.addWidget(self.addCamera(), 0, 0)
         self.main_layout.addWidget(self.addOpacitySlider(), 1, 0)
@@ -52,6 +56,17 @@ class DayAfterDay(QWidget):
 
         self.setWindowTitle(self.title)
         self.show()
+
+    def initConfig(self):
+        self.config = configparser.ConfigParser()
+
+        if not Path(config_file_name).exists():
+            self.config["DEFAULT"] = {"opacity": "50"}
+
+            with open(config_file_name, "w+") as config_file:
+                self.config.write(config_file)
+
+        self.config.read(config_file_name)
 
     def addCamera(self):
         # Add the camera widget.
@@ -97,12 +112,24 @@ class DayAfterDay(QWidget):
             painter.drawPixmap(x_loc, y_loc, self.cameraLabel.pixmap())
             painter.end()
 
-            painter.begin(self)
-            painter.setOpacity(self.slider.sliderPosition() / 100)
-            shadow_picture = QPixmap(picture_files_directory + self.picture_files[0])
-            shadow_picture = shadow_picture.scaled(self.cameraLabel.width(), self.cameraLabel.height(), Qt.KeepAspectRatio)
-            painter.drawPixmap(x_loc, y_loc, shadow_picture)
-            painter.end()
+            if len(self.picture_files) > 0:
+                painter.begin(self)
+
+                slider_pos = self.slider.sliderPosition()
+                self.config.set("DEFAULT", "opacity", str(slider_pos))
+
+                with open(config_file_name, "w") as config_file:
+                    self.config.write(config_file)
+
+                painter.setOpacity(slider_pos / 100)
+
+                shadow_picture = QPixmap(files_directory + self.picture_files[0])
+
+                # TODO: Fix regression that caused this to no longer work.
+                # QPixmap::scaled: Pixmap is a null pixmap
+                shadow_picture = shadow_picture.scaled(self.cameraLabel.pixmap().width(), self.cameraLabel.pixmap().height(), Qt.KeepAspectRatio)
+                painter.drawPixmap(x_loc, y_loc, shadow_picture)
+                painter.end()
 
     def eventFilter(self, obj, ev):
         return ev.type() == QEvent.Paint
@@ -117,8 +144,8 @@ class DayAfterDay(QWidget):
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setTickPosition(QSlider.TicksBothSides)
         self.slider.setTickInterval(10)
-        self.slider.setSliderPosition(50)
         self.slider.setFixedWidth(250)
+        self.slider.setSliderPosition(int(self.config["DEFAULT"]["opacity"]))
 
         layout.addWidget(label)
         layout.addWidget(self.slider, alignment=Qt.AlignCenter)
@@ -140,7 +167,7 @@ class DayAfterDay(QWidget):
         datetime_formatted = str(datetime.datetime.now())[:-7].replace(" ", "-").replace(":", "")
         increment_counter = 1
         picture_file_extension = ".png"
-        picture_file_name = picture_files_directory + "DayAfterDay-" + datetime_formatted + "-"
+        picture_file_name = files_directory + "DayAfterDay-" + datetime_formatted + "-"
 
         # Increment the counter in case file already exists to avoid overwriting files.
         while True:
@@ -152,7 +179,7 @@ class DayAfterDay(QWidget):
         picture_file_name += str(increment_counter) + picture_file_extension
         self.image.save(picture_file_name, "PNG")
         self.history_layout.insertWidget(0, HistoryWidget(picture_file_name))
-        self.picture_files.insert(0, picture_file_name[len(picture_files_directory):])
+        self.picture_files.insert(0, picture_file_name[len(files_directory):])
 
     def addVLine(self):
         line = QFrame()
@@ -171,15 +198,15 @@ class DayAfterDay(QWidget):
             palette.setColor(history.backgroundRole(), Qt.green)
             history.setPalette(palette)
 
-        if not os.path.exists(picture_files_directory):
-            os.makedirs(picture_files_directory)
+        if not os.path.exists(files_directory):
+            os.makedirs(files_directory)
 
-        self.picture_files = [file for file in listdir(picture_files_directory) if isfile(join(picture_files_directory, file))]
+        self.picture_files = [file for file in listdir(files_directory) if isfile(join(files_directory, file))]
         self.picture_files.sort(reverse=True)
 
         for file in self.picture_files:
             if QImageReader.supportedImageFormats().count(file[-3:].lower()) > 0:
-                self.history_layout.insertWidget(0, HistoryWidget(picture_files_directory + file))
+                self.history_layout.insertWidget(0, HistoryWidget(files_directory + file))
 
         # Fill empty space at bottom.
         emptyWidget = QWidget()
