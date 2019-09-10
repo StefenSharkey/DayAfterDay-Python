@@ -9,9 +9,9 @@ import sys
 
 import cv2
 
-from PyQt5.QtCore import Qt, QThread, pyqtSlot, pyqtSignal
-from PyQt5.QtWidgets import QApplication, QPushButton, QFrame, QGridLayout, QLabel, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
-from PyQt5.QtGui import QImage, QImageReader, QPixmap
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
 
 __author__ = "Stefen Sharkey"
 __version__ = "0.01b"
@@ -20,7 +20,6 @@ __project__ = "Day / Day"
 debug = True
 
 picture_files_directory = str(Path.home()) + "\\Documents\\DayAfterDay\\"
-
 
 class DayAfterDay(QWidget):
 
@@ -35,17 +34,19 @@ class DayAfterDay(QWidget):
 
     def initUI(self):
         # Set the main window layout.
-        grid = QGridLayout()
-        self.setLayout(grid)
+        self.main_layout = QGridLayout()
+        self.setLayout(self.main_layout)
+
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
 
         # Add the widgets to the main layout.
-        grid.addWidget(self.addCamera(), 0, 0)
-        grid.addWidget(self.addShutter(), 1, 0)
-        grid.addWidget(self.addVLine(), 0, 1, 2, 1)
-        grid.addWidget(self.addHistory(), 0, 2, 2, 1)
+        self.main_layout.addWidget(self.addCamera(), 0, 0)
+        self.main_layout.addWidget(self.addShutter(), 1, 0)
+        self.main_layout.addWidget(self.addVLine(), 0, 1, 2, 1)
+        self.main_layout.addWidget(self.addHistory(), 0, 2, 2, 1)
 
-        grid.setColumnStretch(0, 1)
-        grid.setColumnStretch(1, 0)
+        self.main_layout.setColumnStretch(0, 1)
+        self.main_layout.setColumnStretch(1, 0)
 
         self.setWindowTitle(self.title)
         self.show()
@@ -63,6 +64,7 @@ class DayAfterDay(QWidget):
 
         self.cameraLabel = QLabel(self)
         self.cameraLabel.setAlignment(Qt.AlignCenter)
+        self.cameraLabel.installEventFilter(self)
 
         thread = Thread(self)
         thread.changePixmap.connect(self.setImage)
@@ -78,8 +80,30 @@ class DayAfterDay(QWidget):
         self.image = QPixmap.fromImage(image)
         self.cameraLabel.setPixmap(self.image.scaled(self.cameraLabel.width(), self.cameraLabel.height(), Qt.KeepAspectRatio))
 
+        self.update()
+
         # We don't want the user pressing the shutter if no image has shown.
         self.shutter.setEnabled(True)
+
+    def paintEvent(self, event):
+        if self.cameraLabel.pixmap() is not None:
+            x_loc = ((self.main_layout.itemAtPosition(0, 0).geometry().width() - self.cameraLabel.pixmap().width()) / 2) + 1
+            y_loc = (self.main_layout.itemAtPosition(0, 0).geometry().height() - self.cameraLabel.pixmap().height()) / 2
+            painter = QPainter()
+
+            painter.begin(self)
+            painter.drawPixmap(x_loc, y_loc, self.cameraLabel.pixmap())
+            painter.end()
+
+            painter.begin(self)
+            painter.setOpacity(.25)
+            shadow_picture = QPixmap(picture_files_directory + self.picture_files[0])
+            shadow_picture = shadow_picture.scaled(self.cameraLabel.width(), self.cameraLabel.height(), Qt.KeepAspectRatio)
+            painter.drawPixmap(x_loc, y_loc, shadow_picture)
+            painter.end()
+
+    def eventFilter(self, obj, ev):
+        return ev.type() == QEvent.Paint
 
     def addShutter(self):
         self.shutter = QPushButton("Take Picture")
@@ -106,6 +130,7 @@ class DayAfterDay(QWidget):
         picture_file_name += str(increment_counter) + picture_file_extension
         self.image.save(picture_file_name, "PNG")
         self.history_layout.insertWidget(0, HistoryWidget(picture_file_name))
+        self.picture_files.insert(0, picture_file_name[len(picture_files_directory):])
 
     def addVLine(self):
         line = QFrame()
@@ -128,7 +153,7 @@ class DayAfterDay(QWidget):
             os.makedirs(picture_files_directory)
 
         self.picture_files = [file for file in listdir(picture_files_directory) if isfile(join(picture_files_directory, file))]
-        self.picture_files.sort()
+        self.picture_files.sort(reverse=True)
 
         for file in self.picture_files:
             if QImageReader.supportedImageFormats().count(file[-3:].lower()) > 0:
