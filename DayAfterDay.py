@@ -23,7 +23,7 @@ debug = False
 files_directory = str(Path.home()) + "\\Documents\\DayAfterDay\\"
 config_file_name = files_directory + "DayAfterDay.ini"
 
-class DayAfterDay(QWidget):
+class DayAfterDay(QMainWindow):
 
     def __init__(self):
         super().__init__()
@@ -37,11 +37,10 @@ class DayAfterDay(QWidget):
     def initUI(self):
         # Set the main window layout.
         self.main_layout = QGridLayout()
-        self.setLayout(self.main_layout)
-
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
         self.initConfig()
+        self.initToolbar()
 
         # Add the widgets to the main layout.
         self.main_layout.addWidget(self.addCamera(), 0, 0)
@@ -54,6 +53,10 @@ class DayAfterDay(QWidget):
         self.main_layout.setColumnStretch(1, 0)
         self.main_layout.setRowStretch(0, 1)
 
+        main_widget = QWidget()
+        main_widget.setLayout(self.main_layout)
+
+        self.setCentralWidget(main_widget)
         self.setWindowTitle(self.title)
         self.show()
 
@@ -67,6 +70,19 @@ class DayAfterDay(QWidget):
                 self.config.write(config_file)
 
         self.config.read(config_file_name)
+
+    def initToolbar(self):
+        file = self.menuBar().addMenu("&File")
+        help = self.menuBar().addMenu("&Help")
+
+        quit = QAction("&Quit", self)
+        quit.triggered.connect(self.close)
+
+        about_qt = QAction("&About Qt", self)
+        about_qt.triggered.connect(qApp.aboutQt)
+
+        file.addAction(quit)
+        help.addAction(about_qt)
 
     def addCamera(self):
         # Add the camera widget.
