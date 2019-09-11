@@ -122,12 +122,8 @@ class DayAfterDay(QWidget):
                     self.config.write(config_file)
 
                 painter.setOpacity(slider_pos / 100)
-
                 shadow_picture = QPixmap(files_directory + self.picture_files[0])
-
-                # TODO: Fix regression that caused this to no longer work.
-                # QPixmap::scaled: Pixmap is a null pixmap
-                shadow_picture = shadow_picture.scaled(self.cameraLabel.pixmap().width(), self.cameraLabel.pixmap().height(), Qt.KeepAspectRatio)
+                shadow_picture = shadow_picture.scaled(self.cameraLabel.width(), self.cameraLabel.height(), Qt.KeepAspectRatio)
                 painter.drawPixmap(x_loc, y_loc, shadow_picture)
                 painter.end()
 
@@ -201,12 +197,15 @@ class DayAfterDay(QWidget):
         if not os.path.exists(files_directory):
             os.makedirs(files_directory)
 
-        self.picture_files = [file for file in listdir(files_directory) if isfile(join(files_directory, file))]
-        self.picture_files.sort(reverse=True)
+        files = [file for file in listdir(files_directory) if isfile(join(files_directory, file))]
+        files.sort(reverse=True)
 
-        for file in self.picture_files:
+        self.picture_files = []
+
+        for file in files:
             if QImageReader.supportedImageFormats().count(file[-3:].lower()) > 0:
-                self.history_layout.insertWidget(0, HistoryWidget(files_directory + file))
+                self.picture_files.append(file)
+                self.history_layout.addWidget(HistoryWidget(files_directory + file))
 
         # Fill empty space at bottom.
         emptyWidget = QWidget()
